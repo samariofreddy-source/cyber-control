@@ -1,0 +1,58 @@
+===========================================================
+   GUIA MAESTRA DE INSTALACION GLOBAL - CYBERCONTROL PRO
+===========================================================
+
+ESTO ES LO QUE DEBES HACER PASO A PASO:
+
+FASE 1: PREPARACION DE LA USB (En tu Mac)
+------------------------------------------
+Copia estos 5 archivos que estan en tu carpeta a la USB:
+1. agent.js (El programa)
+2. package.json (Configuracion)
+3. lock_overlay.html (Pantalla de bloqueo)
+4. INSTALADOR.bat (El script automatico)
+5. node-installer.msi (El instalador de Node.js que descargamos)
+
+
+FASE 2: LA COMPUTADORA "MAESTRA" (Solo en la PC #1 del salon)
+-----------------------------------------------------------
+Objetivo: Preparar las librerias para todas las demas PCs.
+
+1. Conecta la USB a la PC #1.
+2. Haz Click Derecho en "INSTALADOR.bat" y elige "EJECUTAR COMO ADMINISTRADOR".
+   (Espera a que termine de instalar Node.js solo).
+3. Cuando termine, abre la terminal (Clica en la barra de arriba de tu carpeta, borra todo, escribe "cmd" y dale a Enter).
+4. En la ventana negra que se abre, COPIA Y PEGA este comando:
+
+   npm install express socket.io-client screenshot-desktop axios
+
+5. Espera a que termine. Veras una carpeta nueva llamada "node_modules".
+6. COPIA esa carpeta "node_modules" de la PC de regreso a tu USB.
+
+AHORA TU USB TIENE 6 ELEMENTOS (Los 5 originales + la carpeta node_modules).
+
+
+FASE 3: INSTALACION EXPRESS (PCs 2 a la 30)
+----------------------------------------------------------
+¡Ahora es muy rapido! Haz esto en cada una de las demas PCs:
+
+1. Conecta la USB.
+2. Haz Click Derecho en "INSTALADOR.bat".
+3. Elige "EJECUTAR COMO ADMINISTRADOR".
+4. El script instalara Node.js (si falta), copiara el programa e iniciara el control.
+5. Veras que dice "PC CONFIGURADA".
+6. Desconecta y ve a la siguiente.
+
+
+FASE 4: COMO ADMINISTRAR DESDE CUALQUIER LUGAR (iPhone/iPad/Mac)
+-----------------------------------------------------------------
+1. Entra a tu direccion de internet:
+   https://cyber-control-production.up.railway.app
+2. Inicia Sesion con tus datos:
+   USUARIO: Freddy
+   CLAVE: 1310
+
+===========================================================
+CONSEJO: Si el antivirus de Windows bloquea algo, solo dale 
+a "Permitir" o "Mas informacion > Ejecutar de todas formas".
+===========================================================

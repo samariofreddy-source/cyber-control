@@ -1,6 +1,5 @@
 const io = require('socket.io-client');
 const screenshot = require('screenshot-desktop');
-const robot = require('robotjs');
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -9,7 +8,7 @@ const axios = require('axios');
 // --- CONFIGURACIÓN DE CONEXIÓN ---
 const CLOUD_URL = 'https://cyber-control-production.up.railway.app';
 const RAW_AGENT_URL = 'https://raw.githubusercontent.com/samariofreddy-source/cyber-control/main/agent.js';
-const VERSION = '1.0.2'; // Incrementa esto cuando cambies el código
+const VERSION = '1.0.3'; 
 // ---------------------------------
 
 const pcName = process.env.COMPUTERNAME || 'PC-Student';
@@ -78,27 +77,34 @@ function connectToServer() {
         const { command, params } = data;
         
         if (command === 'update') {
-            console.log('Descargando actualización...');
             try {
                 const response = await axios.get(RAW_AGENT_URL);
                 fs.writeFileSync(__filename, response.data);
-                console.log('¡Actualizado! Reiniciando agente...');
                 process.exit(0); 
-            } catch (err) {
-                console.error('Fallo al actualizar:', err.message);
-            }
+            } catch (err) {}
         }
         else if (command === 'mouse-click') {
-            const size = robot.getScreenSize();
-            robot.moveMouse(params.x * size.width, params.y * size.height);
-            robot.mouseClick();
+            // Control de mouse usando PowerShell nativo (Sin librerías externas)
+            const psScript = `
+                Add-Type -AssemblyName System.Windows.Forms
+                $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+                $x = ${params.x} * $screen.Width
+                $y = ${params.y} * $screen.Height
+                [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point($x, $y)
+                
+                $signature = '[DllImport("user32.dll")] public static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);'
+                $type = Add-Type -MemberDefinition $signature -Name "Win32" -Namespace "External" -PassThru
+                $type::mouse_event(0x0002, 0, 0, 0, 0) # Left Down
+                $type::mouse_event(0x0004, 0, 0, 0, 0) # Left Up
+            `;
+            exec(`powershell -Command "${psScript.replace(/\n/g, '')}"`);
         } 
         else if (command === 'power') {
             const flag = params.action === 'shutdown' ? '/s /t 0' : '/r /t 0';
             exec(`shutdown ${flag}`);
         }
         else if (command === 'message') {
-            const msg = params.text.replace(/"/g, '\"');
+            const msg = params.text.replace(/'/g, "''");
             exec(`powershell -Command "Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('${msg}', 'Mensaje del Profesor')"`);
         }
         else if (command === 'lock') {
