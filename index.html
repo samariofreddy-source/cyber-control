@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberControl Pro | Admin Dashboard</title>
+    <meta name="description" content="Sistema de control y monitoreo de centro de cómputo de alta tecnología.">
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-card glass">
+            <div class="login-header">
+                <i data-lucide="shield-check" class="login-logo"></i>
+                <h2>CyberControl <span>Pro</span></h2>
+                <p>Ingresa tus credenciales de administrador</p>
+            </div>
+            <form id="login-form">
+                <div class="input-group">
+                    <label>Usuario</label>
+                    <input type="text" id="login-user" placeholder="Ej. Freddy" required>
+                </div>
+                <div class="input-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="login-pass" placeholder="••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary login-btn">
+                    <span>Acceder al Sistema</span>
+                    <i data-lucide="arrow-right"></i>
+                </button>
+            </form>
+            <p id="login-error" class="error-msg"></p>
+        </div>
+    </div>
+
+    <div class="app-container" id="main-app" style="display: none;">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i data-lucide="shield-check"></i>
+                </div>
+                <span>Cyber<span>Control</span></span>
+            </div>
+            
+            <nav class="main-nav">
+                <button class="nav-item active" id="nav-dashboard">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" id="nav-students">
+                    <i data-lucide="users"></i>
+                    <span>Alumnos</span>
+                </button>
+                <button class="nav-item" id="nav-activity">
+                    <i data-lucide="activity"></i>
+                    <span>Actividad</span>
+                </button>
+                <button class="nav-item" id="nav-settings">
+                    <i data-lucide="settings"></i>
+                    <span>Configuración</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="admin-profile">
+                    <div class="avatar">AD</div>
+                    <div class="admin-info">
+                        <p class="name">Administrador</p>
+                        <p class="role">Control Total</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="search-bar">
+                    <i data-lucide="search"></i>
+                    <input type="text" placeholder="Buscar PC o alumno...">
+                </div>
+                <div class="actions">
+                    <button class="btn btn-secondary" id="btn-refresh">
+                        <i data-lucide="refresh-cw"></i>
+                        Recargar
+                    </button>
+                    <div class="global-actions">
+                        <button class="btn btn-danger" id="btn-shutdown-all" title="Apagar Todas">
+                            <i data-lucide="power"></i>
+                        </button>
+                        <button class="btn btn-warning" id="btn-restart-all" title="Reiniciar Todas">
+                            <i data-lucide="rotate-ccw"></i>
+                        </button>
+                        <button class="btn btn-primary" id="btn-message-all" title="Mensaje Global">
+                            <i data-lucide="megaphone"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <section class="dashboard-header">
+                <div class="welcome-text">
+                    <h1>Estado del Servidor</h1>
+                    <p>Total de 24 equipos conectados en este momento.</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon online">
+                            <i data-lucide="monitor"></i>
+                        </div>
+                        <div class="stat-data">
+                            <h3>18</h3>
+                            <p>En Línea</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon idle">
+                            <i data-lucide="moon"></i>
+                        </div>
+                        <div class="stat-data">
+                            <h3>4</h3>
+                            <p>Inactivas</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon offline">
+                            <i data-lucide="power-off"></i>
+                        </div>
+                        <div class="stat-data">
+                            <h3>2</h3>
+                            <p>Apagadas</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Computer Grid -->
+            <section class="pc-grid" id="pc-grid-container">
+                <!-- Se generará dinámicamente con JS -->
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modales de control -->
+    <div id="pc-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2 id="modal-pc-name">Control de PC</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="pc-details">
+                    <p id="modal-student-name">Cargando...</p>
+                    <div class="pc-metrics">
+                        <div class="metric">
+                            <span class="label">CPU</span>
+                            <div class="progress-bar"><div class="fill" id="modal-cpu-fill" style="width: 0%;"></div></div>
+                        </div>
+                        <div class="metric">
+                            <span class="label">RAM</span>
+                            <div class="progress-bar"><div class="fill" id="modal-ram-fill" style="width: 0%; background: #a855f7;"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Screen Viewer -->
+                <div class="remote-screen-container">
+                    <div class="screen-header">
+                        <span class="live-indicator"><span class="dot"></span> EN VIVO</span>
+                        <div class="control-badges">
+                            <span class="badge" id="pc-lock-status">DESBLOQUEADA</span>
+                            <span id="screen-resolution">1920x1080</span>
+                        </div>
+                    </div>
+                    <div class="screen-canvas-wrapper">
+                        <img id="remote-screen" src="" alt="Pantalla remota">
+                        <div id="screen-overlay"></div>
+                    </div>
+                </div>
+
+                <div class="action-grid">
+                    <button class="action-btn" id="btn-lock-toggle" title="Bloquear Pantalla">
+                        <i data-lucide="lock"></i> <span id="lock-btn-text">Bloquear</span>
+                    </button>
+                    <button class="action-btn" id="btn-send-message" title="Enviar Mensaje">
+                        <i data-lucide="message-square"></i> Mensaje
+                    </button>
+                    <button class="action-btn danger" id="btn-pc-power" title="Apagar PC">
+                        <i data-lucide="power"></i> Apagar
+                    </button>
+                    <button class="action-btn" id="btn-pc-restart" title="Reiniciar PC">
+                        <i data-lucide="rotate-ccw"></i> Reiniciar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="main.js"></script>
+    <script>
+        // Inicializar iconos
+        lucide.createIcons();
+    </script>
+</body>
+</html>
