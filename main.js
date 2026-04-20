@@ -199,6 +199,12 @@ document.getElementById('btn-message-all').addEventListener('click', () => {
     if (msg) computers.forEach(pc => sendCommand(pc.id, 'message', { text: msg }));
 });
 
+document.getElementById('btn-update-all').addEventListener('click', () => {
+    if (confirm("¿Quieres actualizar el código en TODAS las computadoras? (Se reiniciarán los agentes)")) {
+        computers.forEach(pc => sendCommand(pc.id, 'update'));
+    }
+});
+
 // Mouse Logic
 if (screenOverlay) {
     screenOverlay.addEventListener('mousedown', (e) => {

