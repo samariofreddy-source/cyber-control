@@ -109,8 +109,9 @@ function connectToServer() {
         }
         else if (command === 'lock') {
             if (params.state) {
-                const message = encodeURIComponent("El profesor te ha bloqueado la computadora");
-                exec(`start microsoft-edge:file:///${lockHtmlPath.replace(/\\/g, '/')}?msg=${message}`);
+                // Comando más robusto para abrir el bloqueo en pantalla completa
+                const lockFile = lockHtmlPath.replace(/\\/g, '/');
+                exec(`start "" "msedge" --kiosk "file:///${lockFile}" --edge-kiosk-type=fullscreen`);
             }
         }
     });

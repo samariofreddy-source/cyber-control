@@ -4,6 +4,24 @@ const loginOverlay = document.getElementById('login-overlay');
 const mainApp = document.getElementById('main-app');
 const loginForm = document.getElementById('login-form');
 const loginError = document.getElementById('login-error');
+const navItems = document.querySelectorAll('.nav-item');
+const sections = ['dashboard', 'students', 'activities', 'settings'];
+
+function switchSection(sectionId) {
+    navItems.forEach(item => {
+        item.classList.toggle('active', item.dataset.section === sectionId);
+    });
+    // For now, since we only have one main area, we'll just log it
+    // But we could hide/show different grid containers here
+    console.log('Cambiando a sección:', sectionId);
+}
+
+navItems.forEach(item => {
+    item.addEventListener('click', () => {
+        const section = item.dataset.section;
+        if (section) switchSection(section);
+    });
+});
 
 function checkAuth() {
     if (localStorage.getItem('cybercontrol_auth') === 'true') {
@@ -14,8 +32,17 @@ function checkAuth() {
 function showDashboard() {
     loginOverlay.style.display = 'none';
     mainApp.style.display = 'flex';
+    
+    // Iniciar conexión
     initSocket();
+    
+    // Forzar renderizado inicial
     renderPCs();
+    
+    // Activar Iconos (Lucide)
+    if (window.lucide) {
+        lucide.createIcons();
+    }
 }
 
 loginForm.addEventListener('submit', (e) => {
