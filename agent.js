@@ -84,20 +84,17 @@ function connectToServer() {
             } catch (err) {}
         }
         else if (command === 'mouse-click') {
-            // Control de mouse usando PowerShell nativo (Sin librerías externas)
-            const psScript = `
-                Add-Type -AssemblyName System.Windows.Forms
-                $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-                $x = ${params.x} * $screen.Width
-                $y = ${params.y} * $screen.Height
-                [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point($x, $y)
-                
-                $signature = '[DllImport("user32.dll")] public static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);'
-                $type = Add-Type -MemberDefinition $signature -Name "Win32" -Namespace "External" -PassThru
-                $type::mouse_event(0x0002, 0, 0, 0, 0) # Left Down
-                $type::mouse_event(0x0004, 0, 0, 0, 0) # Left Up
-            `;
-            exec(`powershell -Command "${psScript.replace(/\n/g, '')}"`);
+            console.log(`[MOUSE] Clic en: ${params.x}, ${params.y}`);
+            const x = Math.round(params.x * 100) / 100;
+            const y = Math.round(params.y * 100) / 100;
+
+            const ps = `Add-Type -AssemblyName System.Windows.Forms; ` +
+                       `$b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds; ` +
+                       `[System.Windows.Forms.Cursor]::Position=New-Object System.Drawing.Point(([int](${x}*$b.Width)),([int](${y}*$b.Height))); ` +
+                       `$a=Add-Type -M '[DllImport("user32.dll")]public static extern void mouse_event(uint f,uint x,uint y,uint d,uint e);' -N W -P; ` +
+                       `$a::mouse_event(2,0,0,0,0);$a::mouse_event(4,0,0,0,0);`;
+
+            exec(`powershell -WindowStyle Hidden -Command "${ps}"`);
         } 
         else if (command === 'power') {
             const flag = params.action === 'shutdown' ? '/s /t 0' : '/r /t 0';

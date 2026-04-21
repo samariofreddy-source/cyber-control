@@ -42,10 +42,15 @@ if %errorlevel% neq 0 (
 
 :: 3. Generar lanzador invisible
 echo [3/4] Configurando inicio silencioso...
+set "NODE_EXE=C:\Program Files\nodejs\node.exe"
+if not exist "%NODE_EXE%" set "NODE_EXE=node"
+
 (
 echo Set WshShell = CreateObject("WScript.Shell"^)
+echo strPath = "%DEST%"
+echo WshShell.CurrentDirectory = strPath
 echo Do
-echo   WshShell.Run "cmd /c node %DEST%\agent.js", 0, True
+echo   WshShell.Run "cmd /c ""%NODE_EXE%"" agent.js", 0, True
 echo   WScript.Sleep 5000
 echo Loop
 ) > "%DEST%\silencioso.vbs"
@@ -55,11 +60,17 @@ echo [4/4] Configurando arranque automatico...
 set "STARTUP_FOLDER=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
 copy /Y "%DEST%\silencioso.vbs" "%STARTUP_FOLDER%\CyberControlLaunch.vbs" >nul
 
+:: 5. INICIAR AHORA MISMO
+echo [INFO] Iniciando control en segundo plano...
+:: Matar cualquier proceso viejo de node que haya quedado abierto
+taskkill /F /IM node.exe >nul 2>nul
+start "" wscript.exe "%DEST%\silencioso.vbs"
+
 echo.
 echo ===========================================
-echo   ¡PC CONFIGURADA EXITOSAMENTE!
+echo   ¡PC CONFIGURADA Y ACTIVA!
 echo ===========================================
-echo Ya puedes retirar la USB.
+echo La PC debería aparecer en tu iPhone en 5 segundos.
 pause
 exit
 

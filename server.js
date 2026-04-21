@@ -46,31 +46,34 @@ udpServer.bind(() => {
 app.use(express.static(__dirname));
 
 // Store connected agents
-const agents = {};
+const agents = {}; // Use name as key for persistence
 
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
-    // Identify as Admin or Agent
     socket.on('register', (data) => {
         if (data.type === 'agent') {
-            agents[socket.id] = {
-                id: socket.id,
+            // Unificar por nombre de PC para evitar duplicados
+            const pcId = data.name; 
+            agents[pcId] = {
+                id: socket.id, // Current socket
                 name: data.name,
                 user: data.user,
-                locked: false,
+                locked: agents[pcId] ? agents[pcId].locked : false,
+                connected: true,
                 cpu: 10,
                 ram: 30
             };
+            // Guardar el mapeo de socket -> nombre para el disconnect
+            socket.agentName = pcId;
+            
             console.log(`Agent registered: ${data.name}`);
             io.emit('agent-list', Object.values(agents));
         } else {
-            console.log('Admin connected');
             socket.emit('agent-list', Object.values(agents));
         }
     });
 
-    // Screen frame relay
     socket.on('screen-data', (data) => {
         socket.broadcast.emit('screen-stream', {
             agentId: socket.id,
@@ -78,33 +81,32 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Remote Control Commands (Admin -> Agent)
     socket.on('remote-command', (data) => {
         const { targetId, command, params } = data;
         
-        // Optimización: Manejar foco para streaming dinámico
+        // El targetId aquí es el socket.id
         if (command === 'focus' || command === 'unfocus') {
-            if (io.sockets.sockets.get(targetId)) {
-                io.to(targetId).emit('stream-policy', { mode: command });
-            }
+            io.to(targetId).emit('stream-policy', { mode: command });
             return;
         }
 
-        // Update local state if it's a persistent state change
-        if (command === 'lock' && agents[targetId]) {
-            agents[targetId].locked = params.state;
-            io.emit('agent-list', Object.values(agents));
+        // Actualizar estado de bloqueo en la memoria persistente
+        for (let name in agents) {
+            if (agents[name].id === targetId) {
+                if (command === 'lock') agents[name].locked = params.state;
+                break;
+            }
         }
-
-        if (io.sockets.sockets.get(targetId)) {
-            io.to(targetId).emit('execute-command', { command, params });
-        }
+        
+        io.to(targetId).emit('execute-command', { command, params });
+        io.emit('agent-list', Object.values(agents));
     });
 
     socket.on('disconnect', () => {
-        if (agents[socket.id]) {
-            console.log(`Agent disconnected: ${agents[socket.id].name}`);
-            delete agents[socket.id];
+        const agentName = socket.agentName;
+        if (agentName && agents[agentName]) {
+            console.log(`Agent offline: ${agentName}`);
+            agents[agentName].connected = false;
             io.emit('agent-list', Object.values(agents));
         }
     });

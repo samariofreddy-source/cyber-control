@@ -143,11 +143,13 @@ function initSocket() {
                 id: a.id,
                 name: a.name,
                 user: a.user,
-                status: 'online',
-                cpu: a.cpu || 10,
-                ram: a.ram || 30,
-                locked: a.locked || false
+                status: a.connected ? 'online' : 'offline',
+                cpu: a.cpu || 0,
+                ram: a.ram || 0,
+                locked: a.locked || false,
+                connected: a.connected
             }));
+            updateStats();
             renderPCs();
         });
 
@@ -163,9 +165,18 @@ function initSocket() {
                 thumb.style.opacity = "1";
             }
         });
-    } catch (e) {
-        console.error('Socket error:', e);
     }
+}
+
+function updateStats() {
+    const total = computers.length;
+    const online = computers.filter(pc => pc.connected).length;
+    const offline = total - online;
+
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-online').textContent = online;
+    document.getElementById('stat-offline').textContent = offline;
+    document.getElementById('stat-idle').textContent = 0; // Placeholder for now
 }
 
 function renderPCs() {
