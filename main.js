@@ -92,6 +92,37 @@ btnSendEnter.addEventListener('click', () => {
     sendCommand(currentAgentId, 'keyboard-key', { key: 'ENTER' });
 });
 
+const remoteOverlay = document.getElementById('remote-screen-overlay');
+
+remoteOverlay.addEventListener('click', (e) => {
+    const rect = remoteOverlay.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    
+    // Enviar click con coordenadas proporcionales (0 a 1)
+    sendCommand(currentAgentId, 'mouse-click', { x, y });
+    
+    // Efecto visual de click
+    const ripple = document.createElement('div');
+    ripple.style.position = 'absolute';
+    ripple.style.left = `${(x * 100)}%`;
+    ripple.style.top = `${(y * 100)}%`;
+    ripple.style.width = '20px';
+    ripple.style.height = '20px';
+    ripple.style.background = 'rgba(255, 255, 255, 0.5)';
+    ripple.style.borderRadius = '50%';
+    ripple.style.transform = 'translate(-50%, -50%) scale(0)';
+    ripple.style.transition = 'all 0.5s ease-out';
+    ripple.style.pointerEvents = 'none';
+    remoteOverlay.appendChild(ripple);
+    
+    setTimeout(() => {
+        ripple.style.transform = 'translate(-50%, -50%) scale(2)';
+        ripple.style.opacity = '0';
+        setTimeout(() => ripple.remove(), 500);
+    }, 10);
+});
+
 // Mouse Logic
 const screenOverlay = document.getElementById('screen-overlay');
 const lockStatusBadge = document.getElementById('pc-lock-status');

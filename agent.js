@@ -116,9 +116,12 @@ function connectToServer() {
         }
         else if (command === 'lock') {
             if (params.state) {
-                // Comando más robusto para abrir el bloqueo en pantalla completa
+                // Bloquear: Abrir Edge en pantalla completa (Kiosk)
                 const lockFile = lockHtmlPath.replace(/\\/g, '/');
                 exec(`start "" "msedge" --kiosk "file:///${lockFile}" --edge-kiosk-type=fullscreen`);
+            } else {
+                // Desbloquear: Matar el proceso de Edge para liberar la pantalla
+                exec('taskkill /F /IM msedge.exe');
             }
         }
     });
