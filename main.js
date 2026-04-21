@@ -145,6 +145,14 @@ function updateStats() {
 
 function renderPCs() {
     if (!gridContainer) return;
+    
+    // Ordenar computadoras numéricamente por nombre
+    computers.sort((a, b) => {
+        const numA = parseInt(a.name) || 999;
+        const numB = parseInt(b.name) || 999;
+        return numA - numB;
+    });
+
     gridContainer.innerHTML = '';
     
     if (computers.length === 0) {
@@ -233,7 +241,10 @@ document.getElementById('btn-edit-name').addEventListener('click', () => {
     const newName = prompt("Nuevo nombre para esta PC:", pc.name);
     if (newName && newName !== pc.name) {
         sendCommand(currentAgentId, 'rename', { name: newName });
-        modal.classList.remove('active'); // Cerrar modal porque el agente se reiniciará
+        alert("Enviando nuevo nombre... La PC se reiniciará en breve.");
+        modal.classList.remove('active'); 
+        sendCommand(currentAgentId, 'unfocus');
+        currentAgentId = null;
     }
 });
 
