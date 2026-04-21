@@ -569,6 +569,36 @@ body {
     min-height: 1.2em;
 }
 
+/* Remote Keyboard */
+.remote-keyboard {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.remote-keyboard input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0 15px;
+    color: #fff;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.remote-keyboard input:focus {
+    border-color: var(--accent);
+}
+
+.remote-keyboard .btn {
+    padding: 10px 15px;
+}
+
 /* Remote Screen Viewer Styles */
 .pc-details {
     margin-bottom: 1.5rem;

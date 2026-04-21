@@ -107,6 +107,13 @@ function connectToServer() {
             const msg = params.text.replace(/'/g, "''");
             exec(`powershell -Command "Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('${msg}', 'Mensaje del Profesor')"`);
         }
+        else if (command === 'keyboard-type') {
+            const text = params.text.replace(/'/g, "''");
+            exec(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${text}')"`);
+        }
+        else if (command === 'keyboard-key') {
+            exec(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('{%${params.key}%}')"`);
+        }
         else if (command === 'lock') {
             if (params.state) {
                 // Comando más robusto para abrir el bloqueo en pantalla completa

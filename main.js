@@ -69,6 +69,30 @@ const gridContainer = document.getElementById('pc-grid-container');
 const modal = document.getElementById('pc-modal');
 const closeModal = document.querySelector('.close-modal');
 const remoteImg = document.getElementById('remote-screen');
+
+// Keyboard Logic
+const kbInput = document.getElementById('remote-kb-input');
+const btnSendKb = document.getElementById('btn-send-kb');
+const btnSendEnter = document.getElementById('btn-send-enter');
+
+function sendKbText() {
+    const text = kbInput.value;
+    if (text) {
+        sendCommand(currentAgentId, 'keyboard-type', { text });
+        kbInput.value = '';
+    }
+}
+
+btnSendKb.addEventListener('click', sendKbText);
+kbInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendKbText();
+});
+
+btnSendEnter.addEventListener('click', () => {
+    sendCommand(currentAgentId, 'keyboard-key', { key: 'ENTER' });
+});
+
+// Mouse Logic
 const screenOverlay = document.getElementById('screen-overlay');
 const lockStatusBadge = document.getElementById('pc-lock-status');
 const lockBtnText = document.getElementById('lock-btn-text');
