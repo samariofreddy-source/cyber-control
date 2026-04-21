@@ -5,22 +5,34 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const os = require('os');
-const dgram = require('dgram'); // Para descubrimiento automático
+const dgram = require('dgram');
 
-// --- CONFIGURACIÓN ---
-const configPath = path.join(__dirname, 'config.json');
+// --- CONFIGURACIÓN DE PERSISTENCIA ---
+// Usamos una ruta más segura para guardar el nombre, como el home del usuario
+const configPath = path.join(os.homedir(), '.cybercontrol_config.json');
 let agentConfig = { name: null };
-if (fs.existsSync(configPath)) {
-    try { agentConfig = JSON.parse(fs.readFileSync(configPath)); } catch(e) {}
+
+function loadConfig() {
+    if (fs.existsSync(configPath)) {
+        try { 
+            const data = fs.readFileSync(configPath, 'utf8');
+            agentConfig = JSON.parse(data); 
+            console.log("Configuracion cargada:", agentConfig);
+        } catch(e) {
+            console.error("Error cargando config:", e.message);
+        }
+    }
 }
+loadConfig();
 
 const CLOUD_URL = 'https://cyber-control-production.up.railway.app';
 const RAW_AGENT_URL = 'https://raw.githubusercontent.com/samariofreddy-source/cyber-control/main/agent.js';
-const VERSION = '1.0.3'; 
+const VERSION = '1.0.4'; 
 const BROADCAST_PORT = 41234;
 // ---------------------
 
-const pcName = agentConfig.name || os.hostname();
+// Nombre de la PC (Prioridad: Config > Hostname)
+let pcName = agentConfig.name || os.hostname();
 const userName = os.userInfo().username || 'Alumno';
 
 let socket = null;
@@ -29,7 +41,7 @@ let streamQuality = 15;
 let timerId = null;
 
 // Crear Pantalla de Bloqueo HTML
-const lockHtmlPath = path.join(__dirname, 'lock_overlay.html');
+const lockHtmlPath = path.join(os.tmpdir(), 'lock_overlay.html');
 const lockHtmlContent = `
 <!DOCTYPE html>
 <html>
@@ -64,11 +76,16 @@ function captureAndSend() {
 
 function connectToServer(url) {
     if (socket) return;
-    console.log(`Conectando a: ${url} (PC: ${pcName}, User: ${userName})`);
-    socket = io(url);
+    console.log(`Conectando a: ${url} (ID: ${pcName})`);
+    
+    socket = io(url, {
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000
+    });
 
     socket.on('connect', () => {
-        console.log('Conexión establecida con el servidor.');
+        console.log(`¡Conectado! Registrando como: ${pcName}`);
         socket.emit('register', { type: 'agent', name: pcName, user: userName, version: VERSION });
         if (timerId) clearTimeout(timerId);
         captureAndSend();
@@ -86,14 +103,27 @@ function connectToServer(url) {
 
     socket.on('execute-command', async (data) => {
         const { command, params } = data;
-        console.log(`Comando recibido: ${command}`);
+        console.log(`Ejecutando comando: ${command}`);
         
         if (command === 'update') {
             try {
                 const response = await axios.get(RAW_AGENT_URL);
                 fs.writeFileSync(__filename, response.data);
+                console.log("Actualización descargada. Reiniciando...");
                 process.exit(0); 
-            } catch (err) {}
+            } catch (err) { console.error("Error en update:", err.message); }
+        }
+        else if (command === 'rename') {
+            const newName = params.name;
+            console.log(`Renombrando PC a: ${newName}`);
+            agentConfig.name = newName;
+            try {
+                fs.writeFileSync(configPath, JSON.stringify(agentConfig), 'utf8');
+                console.log("Nuevo nombre guardado en config. Reiniciando para aplicar...");
+                process.exit(0); 
+            } catch (e) {
+                console.error("Error guardando nuevo nombre:", e.message);
+            }
         }
         else if (command === 'mouse-click') {
             const x = Math.round(params.x * 100) / 100;
@@ -120,13 +150,6 @@ function connectToServer(url) {
         else if (command === 'keyboard-key') {
             exec(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('{%${params.key}%}')"`);
         }
-        else if (command === 'rename') {
-            const newName = params.name;
-            agentConfig.name = newName;
-            fs.writeFileSync(configPath, JSON.stringify(agentConfig));
-            console.log(`Nombre cambiado a: ${newName}. Reiniciando...`);
-            process.exit(0); 
-        }
         else if (command === 'lock') {
             if (params.state) {
                 const lockFile = lockHtmlPath.replace(/\\/g, '/');
@@ -138,31 +161,31 @@ function connectToServer(url) {
     });
 
     socket.on('disconnect', () => { 
-        console.log('Desconectado del servidor.');
+        console.log('Desconectado. Intentando reconectar...');
         socket = null; 
     });
 }
 
-// Intentar descubrimiento local primero (UDP)
+// Descubrimiento UDP
 const client = dgram.createSocket('udp4');
 client.on('message', (msg) => {
     const data = msg.toString();
     if (data.startsWith('CYBERCONTROL_SERVER:') && !socket) {
         const ip = data.split(':')[1];
-        console.log(`Servidor local detectado en ${ip}`);
+        console.log(`Servidor local en ${ip}`);
         connectToServer(`http://${ip}:3000`);
     }
 });
 
 client.bind(BROADCAST_PORT, () => {
     client.setBroadcast(true);
-    console.log('Buscando servidor local via UDP...');
+    console.log('Buscando servidor en red local...');
 });
 
-// Fallback a Nube después de 5 segundos si no hay servidor local
+// Fallback a Nube
 setTimeout(() => {
     if (!socket) {
-        console.log('No se detecto servidor local. Conectando a la nube...');
+        console.log('Usando servidor en la nube...');
         connectToServer(CLOUD_URL);
     }
 }, 5000);
