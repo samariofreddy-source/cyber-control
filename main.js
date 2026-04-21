@@ -235,6 +235,14 @@ closeModal.addEventListener('click', () => {
     currentAgentId = null;
 });
 
+document.getElementById('btn-delete-pc').addEventListener('click', () => {
+    if (confirm("¿Estás seguro de que quieres eliminar esta PC de la lista?")) {
+        sendCommand(currentAgentId, 'delete-agent');
+        modal.classList.remove('active');
+        currentAgentId = null;
+    }
+});
+
 document.getElementById('btn-edit-name').addEventListener('click', () => {
     const pc = computers.find(c => c.id === currentAgentId);
     if (!pc) return;

@@ -94,11 +94,17 @@ io.on('connection', (socket) => {
         for (let name in agents) {
             if (agents[name].id === targetId) {
                 if (command === 'lock') agents[name].locked = params.state;
+                if (command === 'delete-agent') {
+                    console.log(`Eliminando agente: ${name}`);
+                    delete agents[name];
+                }
                 break;
             }
         }
         
-        io.to(targetId).emit('execute-command', { command, params });
+        if (command !== 'delete-agent') {
+            io.to(targetId).emit('execute-command', { command, params });
+        }
         io.emit('agent-list', Object.values(agents));
     });
 
