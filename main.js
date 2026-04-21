@@ -5,14 +5,11 @@ const mainApp = document.getElementById('main-app');
 const loginForm = document.getElementById('login-form');
 const loginError = document.getElementById('login-error');
 const navItems = document.querySelectorAll('.nav-item');
-const sections = ['dashboard', 'students', 'activities', 'settings'];
 
 function switchSection(sectionId) {
     navItems.forEach(item => {
         item.classList.toggle('active', item.dataset.section === sectionId);
     });
-    // For now, since we only have one main area, we'll just log it
-    // But we could hide/show different grid containers here
     console.log('Cambiando a sección:', sectionId);
 }
 
@@ -30,19 +27,9 @@ function checkAuth() {
 }
 
 function showDashboard() {
-    loginOverlay.style.display = 'none';
-    mainApp.style.display = 'flex';
-    
-    // Iniciar conexión
+    if (loginOverlay) loginOverlay.style.display = 'none';
+    if (mainApp) mainApp.style.display = 'flex';
     initSocket();
-    
-    // Forzar renderizado inicial
-    renderPCs();
-    
-    // Activar Iconos (Lucide)
-    if (window.lucide) {
-        lucide.createIcons();
-    }
 }
 
 loginForm.addEventListener('submit', (e) => {
@@ -54,7 +41,7 @@ loginForm.addEventListener('submit', (e) => {
         localStorage.setItem('cybercontrol_auth', 'true');
         showDashboard();
     } else {
-        loginError.textContent = "Credenciales incorrectas. Intenta de nuevo.";
+        loginError.textContent = "Credenciales incorrectas.";
         setTimeout(() => loginError.textContent = "", 3000);
     }
 });
@@ -63,12 +50,15 @@ loginForm.addEventListener('submit', (e) => {
 const SERVER_URL = window.location.origin;
 let socket;
 let currentAgentId = null;
-let computers = []; // Will be populated by agents
+let computers = [];
 
 const gridContainer = document.getElementById('pc-grid-container');
 const modal = document.getElementById('pc-modal');
 const closeModal = document.querySelector('.close-modal');
 const remoteImg = document.getElementById('remote-screen');
+const lockStatusBadge = document.getElementById('pc-lock-status');
+const lockBtnText = document.getElementById('lock-btn-text');
+const remoteOverlay = document.getElementById('remote-screen-overlay');
 
 // Keyboard Logic
 const kbInput = document.getElementById('remote-kb-input');
@@ -83,56 +73,29 @@ function sendKbText() {
     }
 }
 
-btnSendKb.addEventListener('click', sendKbText);
-kbInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendKbText();
-});
-
-btnSendEnter.addEventListener('click', () => {
+if (btnSendKb) btnSendKb.addEventListener('click', sendKbText);
+if (kbInput) kbInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendKbText(); });
+if (btnSendEnter) btnSendEnter.addEventListener('click', () => {
     sendCommand(currentAgentId, 'keyboard-key', { key: 'ENTER' });
 });
-
-const remoteOverlay = document.getElementById('remote-screen-overlay');
 
 remoteOverlay.addEventListener('click', (e) => {
     const rect = remoteOverlay.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
-    
-    // Enviar click con coordenadas proporcionales (0 a 1)
     sendCommand(currentAgentId, 'mouse-click', { x, y });
     
-    // Efecto visual de click
     const ripple = document.createElement('div');
-    ripple.style.position = 'absolute';
+    ripple.className = 'click-ripple';
     ripple.style.left = `${(x * 100)}%`;
     ripple.style.top = `${(y * 100)}%`;
-    ripple.style.width = '20px';
-    ripple.style.height = '20px';
-    ripple.style.background = 'rgba(255, 255, 255, 0.5)';
-    ripple.style.borderRadius = '50%';
-    ripple.style.transform = 'translate(-50%, -50%) scale(0)';
-    ripple.style.transition = 'all 0.5s ease-out';
-    ripple.style.pointerEvents = 'none';
     remoteOverlay.appendChild(ripple);
-    
-    setTimeout(() => {
-        ripple.style.transform = 'translate(-50%, -50%) scale(2)';
-        ripple.style.opacity = '0';
-        setTimeout(() => ripple.remove(), 500);
-    }, 10);
+    setTimeout(() => ripple.remove(), 600);
 });
 
-// Mouse Logic
-const screenOverlay = document.getElementById('screen-overlay');
-const lockStatusBadge = document.getElementById('pc-lock-status');
-const lockBtnText = document.getElementById('lock-btn-text');
-
-// Initialize Socket.io
 function initSocket() {
     try {
         socket = io(SERVER_URL);
-
         socket.on('connect', () => {
             console.log('Dashboard Connected');
             socket.emit('register', { type: 'admin' });
@@ -154,18 +117,16 @@ function initSocket() {
         });
 
         socket.on('screen-stream', (data) => {
-            // Update modal if open
             if (currentAgentId === data.agentId) {
                 remoteImg.src = `data:image/jpeg;base64,${data.image}`;
             }
-            // Update grid thumbnail
             const thumb = document.getElementById(`thumb-${data.agentId}`);
             if (thumb) {
                 thumb.src = `data:image/jpeg;base64,${data.image}`;
                 thumb.style.opacity = "1";
             }
         });
-    }
+    } catch (e) { console.error('Socket error:', e); }
 }
 
 function updateStats() {
@@ -173,10 +134,13 @@ function updateStats() {
     const online = computers.filter(pc => pc.connected).length;
     const offline = total - online;
 
-    document.getElementById('stat-total').textContent = total;
-    document.getElementById('stat-online').textContent = online;
-    document.getElementById('stat-offline').textContent = offline;
-    document.getElementById('stat-idle').textContent = 0; // Placeholder for now
+    const elTotal = document.getElementById('stat-total');
+    const elOnline = document.getElementById('stat-online');
+    const elOffline = document.getElementById('stat-offline');
+
+    if (elTotal) elTotal.textContent = total;
+    if (elOnline) elOnline.textContent = online;
+    if (elOffline) elOffline.textContent = offline;
 }
 
 function renderPCs() {
@@ -201,17 +165,10 @@ function renderPCs() {
                 <h4>${pc.name}</h4>
                 <p class="student">${pc.user}</p>
             </div>
-            <div class="pc-usage">
-                <div class="progress-bar">
-                    <div class="fill" style="width: ${pc.cpu}%"></div>
-                </div>
-            </div>
         `;
-        
         card.addEventListener('click', () => openControlModal(pc));
         gridContainer.appendChild(card);
     });
-    
     if (window.lucide) lucide.createIcons();
 }
 
@@ -221,12 +178,9 @@ function openControlModal(pc) {
     document.getElementById('modal-student-name').textContent = `Usuario: ${pc.user}`;
     document.getElementById('modal-cpu-fill').style.width = `${pc.cpu}%`;
     document.getElementById('modal-ram-fill').style.width = `${pc.ram}%`;
-    
     updateLockUI(pc.locked);
     remoteImg.src = '';
     modal.classList.add('active');
-
-    // Optimización: Pedirle al agente que transmita rápido
     sendCommand(currentAgentId, 'focus');
 }
 
@@ -242,13 +196,12 @@ function updateLockUI(isLocked) {
     }
 }
 
-// Control Handlers
 function sendCommand(id, command, params = {}) {
     if (!socket) return;
     socket.emit('remote-command', { targetId: id, command, params });
 }
 
-// Individual Controls
+// Global Commands
 document.getElementById('btn-lock-toggle').addEventListener('click', () => {
     const pc = computers.find(c => c.id === currentAgentId);
     if (!pc) return;
@@ -257,73 +210,22 @@ document.getElementById('btn-lock-toggle').addEventListener('click', () => {
     sendCommand(currentAgentId, 'lock', { state: pc.locked });
 });
 
-document.getElementById('btn-send-message').addEventListener('click', () => {
-    const msg = prompt("Escribe el mensaje para el alumno:");
-    if (msg) sendCommand(currentAgentId, 'message', { text: msg });
-});
-
-document.getElementById('btn-pc-power').addEventListener('click', () => {
-    if (confirm("¿Seguro que quieres apagar esta PC?")) {
-        sendCommand(currentAgentId, 'power', { action: 'shutdown' });
-    }
-});
-
-document.getElementById('btn-pc-restart').addEventListener('click', () => {
-    if (confirm("¿Seguro que quieres reiniciar esta PC?")) {
-        sendCommand(currentAgentId, 'power', { action: 'restart' });
-    }
-});
-
-// Global Controls
-document.getElementById('btn-shutdown-all').addEventListener('click', () => {
-    if (confirm("¿APAGAR TODAS las computadoras del laboratorio?")) {
-        computers.forEach(pc => sendCommand(pc.id, 'power', { action: 'shutdown' }));
-    }
-});
-
-document.getElementById('btn-restart-all').addEventListener('click', () => {
-    if (confirm("¿REINICIAR TODAS las computadoras del laboratorio?")) {
-        computers.forEach(pc => sendCommand(pc.id, 'power', { action: 'restart' }));
-    }
-});
-
-document.getElementById('btn-message-all').addEventListener('click', () => {
-    const msg = prompt("Mensaje GLOBAL para todos los alumnos:");
-    if (msg) computers.forEach(pc => sendCommand(pc.id, 'message', { text: msg }));
-});
-
 document.getElementById('btn-update-all').addEventListener('click', () => {
-    if (confirm("¿Quieres actualizar el código en TODAS las computadoras? (Se reiniciarán los agentes)")) {
+    if (confirm("¿Actualizar todas las PCs?")) {
         computers.forEach(pc => sendCommand(pc.id, 'update'));
     }
 });
 
-// Mouse Logic
-if (screenOverlay) {
-    screenOverlay.addEventListener('mousedown', (e) => {
-        if (!currentAgentId) return;
-        const rect = screenOverlay.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / rect.width;
-        const y = (e.clientY - rect.top) / rect.height;
-        sendCommand(currentAgentId, 'mouse-click', { x, y });
-    });
-}
-
-closeModal.addEventListener('click', () => { 
-    if (currentAgentId) sendCommand(currentAgentId, 'unfocus');
-    modal.classList.remove('active'); 
-    currentAgentId = null; 
-});
-window.addEventListener('click', (e) => { 
-    if (e.target === modal) { 
-        if (currentAgentId) sendCommand(currentAgentId, 'unfocus');
-        modal.classList.remove('active'); 
-        currentAgentId = null; 
-    } 
+document.getElementById('btn-message-all').addEventListener('click', () => {
+    const msg = prompt("Mensaje GLOBAL:");
+    if (msg) computers.forEach(pc => sendCommand(pc.id, 'message', { text: msg }));
 });
 
-document.getElementById('btn-refresh').addEventListener('click', () => location.reload());
+closeModal.addEventListener('click', () => {
+    modal.classList.remove('active');
+    sendCommand(currentAgentId, 'unfocus');
+    currentAgentId = null;
+});
 
 // Initialize
 checkAuth();
-console.log('CyberControl Pro Max Dashboard Inicializado');
