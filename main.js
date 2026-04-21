@@ -227,5 +227,15 @@ closeModal.addEventListener('click', () => {
     currentAgentId = null;
 });
 
+document.getElementById('btn-edit-name').addEventListener('click', () => {
+    const pc = computers.find(c => c.id === currentAgentId);
+    if (!pc) return;
+    const newName = prompt("Nuevo nombre para esta PC:", pc.name);
+    if (newName && newName !== pc.name) {
+        sendCommand(currentAgentId, 'rename', { name: newName });
+        modal.classList.remove('active'); // Cerrar modal porque el agente se reiniciará
+    }
+});
+
 // Initialize
 checkAuth();

@@ -4,20 +4,38 @@ const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const os = require('os');
 
 // --- CONFIGURACIÓN DE CONEXIÓN ---
+const configPath = path.join(__dirname, 'config.json');
+let agentConfig = { name: null };
+if (fs.existsSync(configPath)) {
+    try { agentConfig = JSON.parse(fs.readFileSync(configPath)); } catch(e) {}
+}
+
 const CLOUD_URL = 'https://cyber-control-production.up.railway.app';
 const RAW_AGENT_URL = 'https://raw.githubusercontent.com/samariofreddy-source/cyber-control/main/agent.js';
 const VERSION = '1.0.3'; 
 // ---------------------------------
 
-const pcName = process.env.COMPUTERNAME || 'PC-Student';
-const userName = process.env.USERNAME || 'Alumno';
+const pcName = agentConfig.name || os.hostname();
+const userName = os.userInfo().username || 'Alumno';
 
 let socket = null;
 let streamInterval = 2000;
 let streamQuality = 15;
 let timerId = null;
+
+// Sensor de Inactividad
+let lastMousePos = { x: 0, y: 0 };
+let idleTicks = 0;
+const IDLE_LIMIT = 10; // 5 minutos (si revisamos cada 30 seg)
+
+function checkIdle() {
+    // Nota: robotjs fue removido, pero podemos usar un comando ligero de PS para esto si quisieramos
+    // Por ahora, para no complicar, lo basaremos en si hay stream activo
+    // O mejor: simplemente lo dejamos en 0 hasta que implementemos un tracker pro.
+}
 
 // Crear Pantalla de Bloqueo HTML
 const lockHtmlPath = path.join(__dirname, 'lock_overlay.html');
@@ -110,6 +128,13 @@ function connectToServer() {
         }
         else if (command === 'keyboard-key') {
             exec(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('{%${params.key}%}')"`);
+        }
+        else if (command === 'rename') {
+            const newName = params.name;
+            agentConfig.name = newName;
+            fs.writeFileSync(configPath, JSON.stringify(agentConfig));
+            console.log(`Nombre cambiado a: ${newName}. Reiniciando...`);
+            process.exit(0); // El VBS lo reiniciará automáticamente
         }
         else if (command === 'lock') {
             if (params.state) {
