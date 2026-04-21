@@ -5,8 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const os = require('os');
+const dgram = require('dgram'); // Para descubrimiento automático
 
-// --- CONFIGURACIÓN DE CONEXIÓN ---
+// --- CONFIGURACIÓN ---
 const configPath = path.join(__dirname, 'config.json');
 let agentConfig = { name: null };
 if (fs.existsSync(configPath)) {
@@ -16,7 +17,8 @@ if (fs.existsSync(configPath)) {
 const CLOUD_URL = 'https://cyber-control-production.up.railway.app';
 const RAW_AGENT_URL = 'https://raw.githubusercontent.com/samariofreddy-source/cyber-control/main/agent.js';
 const VERSION = '1.0.3'; 
-// ---------------------------------
+const BROADCAST_PORT = 41234;
+// ---------------------
 
 const pcName = agentConfig.name || os.hostname();
 const userName = os.userInfo().username || 'Alumno';
@@ -25,17 +27,6 @@ let socket = null;
 let streamInterval = 2000;
 let streamQuality = 15;
 let timerId = null;
-
-// Sensor de Inactividad
-let lastMousePos = { x: 0, y: 0 };
-let idleTicks = 0;
-const IDLE_LIMIT = 10; // 5 minutos (si revisamos cada 30 seg)
-
-function checkIdle() {
-    // Nota: robotjs fue removido, pero podemos usar un comando ligero de PS para esto si quisieramos
-    // Por ahora, para no complicar, lo basaremos en si hay stream activo
-    // O mejor: simplemente lo dejamos en 0 hasta que implementemos un tracker pro.
-}
 
 // Crear Pantalla de Bloqueo HTML
 const lockHtmlPath = path.join(__dirname, 'lock_overlay.html');
@@ -71,11 +62,13 @@ function captureAndSend() {
     timerId = setTimeout(captureAndSend, streamInterval);
 }
 
-function connectToServer() {
-    console.log(`Conectando: ${CLOUD_URL} (V: ${VERSION})`);
-    socket = io(CLOUD_URL);
+function connectToServer(url) {
+    if (socket) return;
+    console.log(`Conectando a: ${url} (PC: ${pcName}, User: ${userName})`);
+    socket = io(url);
 
     socket.on('connect', () => {
+        console.log('Conexión establecida con el servidor.');
         socket.emit('register', { type: 'agent', name: pcName, user: userName, version: VERSION });
         if (timerId) clearTimeout(timerId);
         captureAndSend();
@@ -93,6 +86,7 @@ function connectToServer() {
 
     socket.on('execute-command', async (data) => {
         const { command, params } = data;
+        console.log(`Comando recibido: ${command}`);
         
         if (command === 'update') {
             try {
@@ -102,16 +96,13 @@ function connectToServer() {
             } catch (err) {}
         }
         else if (command === 'mouse-click') {
-            console.log(`[MOUSE] Clic en: ${params.x}, ${params.y}`);
             const x = Math.round(params.x * 100) / 100;
             const y = Math.round(params.y * 100) / 100;
-
             const ps = `Add-Type -AssemblyName System.Windows.Forms; ` +
                        `$b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds; ` +
                        `[System.Windows.Forms.Cursor]::Position=New-Object System.Drawing.Point(([int](${x}*$b.Width)),([int](${y}*$b.Height))); ` +
                        `$a=Add-Type -M '[DllImport("user32.dll")]public static extern void mouse_event(uint f,uint x,uint y,uint d,uint e);' -N W -P; ` +
                        `$a::mouse_event(2,0,0,0,0);$a::mouse_event(4,0,0,0,0);`;
-
             exec(`powershell -WindowStyle Hidden -Command "${ps}"`);
         } 
         else if (command === 'power') {
@@ -134,21 +125,44 @@ function connectToServer() {
             agentConfig.name = newName;
             fs.writeFileSync(configPath, JSON.stringify(agentConfig));
             console.log(`Nombre cambiado a: ${newName}. Reiniciando...`);
-            process.exit(0); // El VBS lo reiniciará automáticamente
+            process.exit(0); 
         }
         else if (command === 'lock') {
             if (params.state) {
-                // Bloquear: Abrir Edge en pantalla completa (Kiosk)
                 const lockFile = lockHtmlPath.replace(/\\/g, '/');
                 exec(`start "" "msedge" --kiosk "file:///${lockFile}" --edge-kiosk-type=fullscreen`);
             } else {
-                // Desbloquear: Matar el proceso de Edge para liberar la pantalla
                 exec('taskkill /F /IM msedge.exe');
             }
         }
     });
 
-    socket.on('disconnect', () => { socket = null; });
+    socket.on('disconnect', () => { 
+        console.log('Desconectado del servidor.');
+        socket = null; 
+    });
 }
 
-connectToServer();
+// Intentar descubrimiento local primero (UDP)
+const client = dgram.createSocket('udp4');
+client.on('message', (msg) => {
+    const data = msg.toString();
+    if (data.startsWith('CYBERCONTROL_SERVER:') && !socket) {
+        const ip = data.split(':')[1];
+        console.log(`Servidor local detectado en ${ip}`);
+        connectToServer(`http://${ip}:3000`);
+    }
+});
+
+client.bind(BROADCAST_PORT, () => {
+    client.setBroadcast(true);
+    console.log('Buscando servidor local via UDP...');
+});
+
+// Fallback a Nube después de 5 segundos si no hay servidor local
+setTimeout(() => {
+    if (!socket) {
+        console.log('No se detecto servidor local. Conectando a la nube...');
+        connectToServer(CLOUD_URL);
+    }
+}, 5000);
