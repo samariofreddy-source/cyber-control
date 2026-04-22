@@ -56,6 +56,8 @@ app.use(express.static(__dirname));
 // Store connected agents
 const agents = {}; // Use name as key for persistence
 
+let adminsCount = 0;
+
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
@@ -78,6 +80,16 @@ io.on('connection', (socket) => {
             console.log(`Agent registered: ${data.name}`);
             io.emit('agent-list', Object.values(agents));
         } else {
+            socket.join('admins');
+            socket.isAdmin = true;
+            adminsCount++;
+            console.log(`Admin connected. Total: ${adminsCount}`);
+            
+            // Si es el primer admin, pedirle a todas las PCs que empiecen a transmitir
+            if (adminsCount === 1) {
+                io.emit('stream-control', { enabled: true });
+            }
+            
             socket.emit('agent-list', Object.values(agents));
         }
     });
@@ -134,6 +146,15 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
+        if (socket.isAdmin) {
+            adminsCount--;
+            console.log(`Admin disconnected. Total: ${adminsCount}`);
+            // Si no quedan admins, pedirle a todas las PCs que dejen de transmitir
+            if (adminsCount === 0) {
+                io.emit('stream-control', { enabled: false });
+            }
+        }
+
         const agentName = socket.agentName;
         if (agentName && agents[agentName]) {
             console.log(`Agent offline: ${agentName}`);

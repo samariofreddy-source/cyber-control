@@ -32,7 +32,7 @@ loadConfig();
 
 const CLOUD_URL = 'https://cyber-control-production.up.railway.app';
 const RAW_AGENT_URL = 'https://raw.githubusercontent.com/samariofreddy-source/cyber-control/main/agent.js';
-const VERSION = '1.0.4'; 
+const VERSION = '1.0.5'; 
 const BROADCAST_PORT = 41234;
 // ---------------------
 
@@ -44,6 +44,7 @@ let socket = null;
 let streamInterval = 2000;
 let streamQuality = 15;
 let timerId = null;
+let isStreaming = false;
 
 // Crear Pantalla de Bloqueo HTML
 const lockHtmlPath = path.join(os.tmpdir(), 'lock_overlay.html');
@@ -72,7 +73,7 @@ const lockHtmlContent = `
 fs.writeFileSync(lockHtmlPath, lockHtmlContent);
 
 function captureAndSend() {
-    if (!socket || !socket.connected) return;
+    if (!socket || !socket.connected || !isStreaming) return;
     screenshot({ format: 'jpg', quality: streamQuality }).then((img) => {
         socket.emit('screen-data', img.toString('base64'));
     }).catch(() => {});
@@ -103,7 +104,14 @@ function connectToServer(url) {
             streamInterval = 2000; streamQuality = 15;
         }
         if (timerId) clearTimeout(timerId);
-        captureAndSend();
+        if (isStreaming) captureAndSend();
+    });
+
+    socket.on('stream-control', (data) => {
+        console.log(`Control de stream: ${data.enabled}`);
+        isStreaming = data.enabled;
+        if (timerId) clearTimeout(timerId);
+        if (isStreaming) captureAndSend();
     });
 
     socket.on('execute-command', async (data) => {
@@ -190,10 +198,17 @@ function connectToServer(url) {
 const client = dgram.createSocket('udp4');
 client.on('message', (msg) => {
     const data = msg.toString();
-    if (data.startsWith('CYBERCONTROL_SERVER:') && !socket) {
+    if (data.startsWith('CYBERCONTROL_SERVER:')) {
         const ip = data.split(':')[1];
-        console.log(`Servidor local en ${ip}`);
-        connectToServer(`http://${ip}:3000`);
+        const localUrl = `http://${ip}:3000`;
+        
+        // Si no tenemos socket o estamos en la nube, cambiamos a local
+        if (!socket || (socket.io.uri !== localUrl)) {
+            console.log(`Servidor local detectado en ${ip}. Cambiando...`);
+            if (socket) socket.disconnect();
+            socket = null;
+            connectToServer(localUrl);
+        }
     }
 });
 
