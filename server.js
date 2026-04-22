@@ -37,9 +37,17 @@ setInterval(() => {
     });
 }, 3000); // Avisa cada 3 segundos donde está el servidor
 
+udpServer.on('error', (err) => {
+    console.error('UDP Server error:', err.message);
+});
+
 udpServer.bind(() => {
-    udpServer.setBroadcast(true);
-    console.log('UDP Broadcast active for auto-discovery');
+    try {
+        udpServer.setBroadcast(true);
+        console.log('UDP Broadcast active for auto-discovery');
+    } catch (e) {
+        console.error('Could not enable UDP broadcast:', e.message);
+    }
 });
 // -------------------------------------------------
 
