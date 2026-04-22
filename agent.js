@@ -16,11 +16,16 @@ function loadConfig() {
     if (fs.existsSync(configPath)) {
         try { 
             const data = fs.readFileSync(configPath, 'utf8');
-            agentConfig = JSON.parse(data); 
-            console.log("Configuracion cargada:", agentConfig);
+            const parsed = JSON.parse(data); 
+            if (parsed && typeof parsed === 'object') {
+                agentConfig = { ...agentConfig, ...parsed };
+                console.log("Configuración cargada:", agentConfig);
+            }
         } catch(e) {
             console.error("Error cargando config:", e.message);
         }
+    } else {
+        console.log("No se encontró archivo de configuración, se usará hostname.");
     }
 }
 loadConfig();
@@ -115,14 +120,29 @@ function connectToServer(url) {
         }
         else if (command === 'rename') {
             const newName = params.name;
-            console.log(`Renombrando PC a: ${newName}`);
+            console.log(`Petición de renombrado: de "${pcName}" a "${newName}"`);
+            
+            const oldName = pcName;
             agentConfig.name = newName;
+            
             try {
                 fs.writeFileSync(configPath, JSON.stringify(agentConfig), 'utf8');
-                console.log("Nuevo nombre guardado en config. Reiniciando para aplicar...");
-                process.exit(0); 
+                pcName = newName; // Actualizar localmente
+                console.log("Nuevo nombre guardado en archivo.");
+                
+                // Intentar avisar al servidor del cambio antes de reiniciar
+                if (socket && socket.connected) {
+                    socket.emit('register', { type: 'agent', name: pcName, user: userName, version: VERSION });
+                }
+                
+                console.log("Reiniciando para aplicar cambios de forma limpia...");
+                setTimeout(() => {
+                    process.exit(0);
+                }, 1000); 
             } catch (e) {
-                console.error("Error guardando nuevo nombre:", e.message);
+                console.error("Error crítico guardando nuevo nombre:", e.message);
+                // Si falla el guardado, al menos intentamos seguir con el nombre anterior
+                agentConfig.name = oldName;
             }
         }
         else if (command === 'mouse-click') {

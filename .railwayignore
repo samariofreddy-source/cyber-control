@@ -1,0 +1,6 @@
+node_modules
+node-installer.msi
+INSTALADOR.bat
+INSTRUCCIONES.txt
+.DS_Store
+*.command

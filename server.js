@@ -94,6 +94,23 @@ io.on('connection', (socket) => {
         for (let name in agents) {
             if (agents[name].id === targetId) {
                 if (command === 'lock') agents[name].locked = params.state;
+                
+                if (command === 'rename') {
+                    const newName = params.name;
+                    const agentData = agents[name];
+                    delete agents[name]; // Eliminar el nombre viejo
+                    agentData.name = newName;
+                    agents[newName] = agentData; // Insertar con el nuevo nombre
+                    
+                    // Actualizar el socket del agente para que al desconectarse 
+                    // sepa que el nombre ya cambió
+                    const agentSocket = io.sockets.sockets.get(targetId);
+                    if (agentSocket) {
+                        agentSocket.agentName = newName;
+                    }
+                    console.log(`PC Renombrada: ${name} -> ${newName}`);
+                }
+
                 if (command === 'delete-agent') {
                     console.log(`Eliminando agente: ${name}`);
                     delete agents[name];
