@@ -146,7 +146,12 @@ io.on('connection', (socket) => {
         if (command !== 'delete-agent') {
             io.to(targetId).emit('execute-command', { command, params });
         }
-        io.emit('agent-list', Object.values(agents));
+
+        // Solo refrescar la lista global si el comando cambió el estado persistente
+        const stateCommands = ['lock', 'rename', 'delete-agent', 'register'];
+        if (stateCommands.includes(command)) {
+            io.emit('agent-list', Object.values(agents));
+        }
     });
 
     socket.on('disconnect', () => {

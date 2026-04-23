@@ -7,6 +7,13 @@ const axios = require('axios');
 const os = require('os');
 const dgram = require('dgram');
 
+let robot = null;
+try {
+    robot = require('robotjs');
+} catch (e) {
+    console.log("RobotJS no disponible, usando fallback (PowerShell)");
+}
+
 // --- CONFIGURACIÓN DE PERSISTENCIA ---
 // Usamos una ruta más segura para guardar el nombre, como el home del usuario
 const configPath = path.join(os.homedir(), '.cybercontrol_config.json');
@@ -32,7 +39,7 @@ loadConfig();
 
 const CLOUD_URL = 'https://cyber-control-production.up.railway.app';
 const RAW_AGENT_URL = 'https://raw.githubusercontent.com/samariofreddy-source/cyber-control/main/agent.js';
-const VERSION = '1.0.8'; 
+const VERSION = '1.0.9'; 
 const BROADCAST_PORT = 41234;
 // ---------------------
 
@@ -162,23 +169,35 @@ function connectToServer(url) {
             }
         }
         else if (command === 'mouse-move') {
-            const x = Math.round(params.x * 100) / 100;
-            const y = Math.round(params.y * 100) / 100;
-            const ps = `Add-Type -AssemblyName System.Windows.Forms; ` +
-                       `$b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds; ` +
-                       `[System.Windows.Forms.Cursor]::Position=New-Object System.Drawing.Point(([int](${x}*$b.Width)),([int](${y}*$b.Height)));`;
-            exec(`powershell -WindowStyle Hidden -Command "${ps}"`);
+            if (robot) {
+                const screen = robot.getScreenSize();
+                robot.moveMouse(params.x * screen.width, params.y * screen.height);
+            } else {
+                const x = Math.round(params.x * 100) / 100;
+                const y = Math.round(params.y * 100) / 100;
+                const ps = `Add-Type -AssemblyName System.Windows.Forms; ` +
+                           `$b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds; ` +
+                           `[System.Windows.Forms.Cursor]::Position=New-Object System.Drawing.Point(([int](${x}*$b.Width)),([int](${y}*$b.Height)));`;
+                exec(`powershell -WindowStyle Hidden -Command "${ps}"`);
+            }
         }
         else if (command === 'mouse-click') {
-            const x = Math.round(params.x * 100) / 100;
-            const y = Math.round(params.y * 100) / 100;
-            const ps = `Add-Type -AssemblyName System.Windows.Forms; ` +
-                       `$b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds; ` +
-                       `[System.Windows.Forms.Cursor]::Position=New-Object System.Drawing.Point(([int](${x}*$b.Width)),([int](${y}*$b.Height))); ` +
-                       `$a=Add-Type -M '[DllImport("user32.dll")]public static extern void mouse_event(uint f,uint x,uint y,uint d,uint e);' -N W -P; ` +
-                       `$a::mouse_event(2,0,0,0,0);$a::mouse_event(4,0,0,0,0);`;
-            exec(`powershell -WindowStyle Hidden -Command "${ps}"`);
-        } 
+            if (robot) {
+                const screen = robot.getScreenSize();
+                robot.moveMouse(params.x * screen.width, params.y * screen.height);
+                robot.mouseClick();
+            } else {
+                const x = Math.round(params.x * 100) / 100;
+                const y = Math.round(params.y * 100) / 100;
+                const ps = `Add-Type -AssemblyName System.Windows.Forms; ` +
+                           `$b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds; ` +
+                           `[System.Windows.Forms.Cursor]::Position=New-Object System.Drawing.Point(([int](${x}*$b.Width)),([int](${y}*$b.Height))); ` +
+                           `$a=Add-Type -M '[DllImport("user32.dll")]public static extern void mouse_event(uint f,uint x,uint y,uint d,uint e);' -N W -P; ` +
+                           `$a::mouse_event(2,0,0,0,0);$a::mouse_event(4,0,0,0,0);`;
+                exec(`powershell -WindowStyle Hidden -Command "${ps}"`);
+            }
+        }
+ 
         else if (command === 'power') {
             const flag = params.action === 'shutdown' ? '/s /t 0' : '/r /t 0';
             exec(`shutdown ${flag}`);
