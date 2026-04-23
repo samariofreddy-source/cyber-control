@@ -252,6 +252,17 @@ document.getElementById('btn-message-all').addEventListener('click', () => {
     if (msg) computers.forEach(pc => sendCommand(pc.id, 'message', { text: msg }));
 });
 
+document.getElementById('btn-force-local').addEventListener('click', () => {
+    const ip = prompt("Escribe la IP de tu Mac para conectar todas las PCs:", "192.168.3.221");
+    if (ip) {
+        const localUrl = `http://${ip}:3000`;
+        if (confirm(`¿Enviar a todas las PCs a ${localUrl}?`)) {
+            computers.forEach(pc => sendCommand(pc.id, 'switch-server', { url: localUrl }));
+            alert("Orden enviada. Revisa tu panel local (localhost:3000) en unos segundos.");
+        }
+    }
+});
+
 closeModal.addEventListener('click', () => {
     modal.classList.remove('active');
     sendCommand(currentAgentId, 'unfocus');

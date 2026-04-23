@@ -39,7 +39,7 @@ loadConfig();
 
 const CLOUD_URL = 'https://cyber-control-production.up.railway.app';
 const RAW_AGENT_URL = 'https://raw.githubusercontent.com/samariofreddy-source/cyber-control/main/agent.js';
-const VERSION = '1.0.9'; 
+const VERSION = '1.1.0'; 
 const BROADCAST_PORT = 41234;
 // ---------------------
 
@@ -167,6 +167,13 @@ function connectToServer(url) {
                 // Si falla el guardado, al menos intentamos seguir con el nombre anterior
                 agentConfig.name = oldName;
             }
+        }
+        else if (command === 'switch-server') {
+            const newUrl = params.url;
+            console.log(`Cambiando forzosamente a servidor: ${newUrl}`);
+            if (socket) socket.disconnect();
+            socket = null;
+            connectToServer(newUrl);
         }
         else if (command === 'mouse-move') {
             if (robot) {
