@@ -60,6 +60,12 @@ echo [4/4] Configurando arranque automatico...
 set "STARTUP_FOLDER=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
 copy /Y "%DEST%\silencioso.vbs" "%STARTUP_FOLDER%\CyberControlLaunch.vbs" >nul
 
+:: 4.5 Configurar Firewall automáticamente
+echo [OK] Autorizando programa en el Firewall...
+netsh advfirewall firewall delete rule name="CyberControl" >nul 2>nul
+netsh advfirewall firewall add rule name="CyberControl" dir=in action=allow program="%NODE_EXE%" enable=yes
+netsh advfirewall firewall add rule name="CyberControl" dir=out action=allow program="%NODE_EXE%" enable=yes
+
 :: 5. INICIAR AHORA MISMO
 echo [INFO] Iniciando control en segundo plano...
 :: Matar cualquier proceso viejo de node que haya quedado abierto

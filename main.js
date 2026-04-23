@@ -213,9 +213,16 @@ function sendCommand(id, command, params = {}) {
 document.getElementById('btn-lock-toggle').addEventListener('click', () => {
     const pc = computers.find(c => c.id === currentAgentId);
     if (!pc) return;
+    
     pc.locked = !pc.locked;
+    let message = "";
+    if (pc.locked) {
+        message = prompt("Escribe el mensaje para la pantalla de bloqueo:", "ACCESO RESTRINGIDO POR EL PROFESOR");
+        if (message === null) { pc.locked = false; return; } // Canceló
+    }
+    
     updateLockUI(pc.locked);
-    sendCommand(currentAgentId, 'lock', { state: pc.locked });
+    sendCommand(currentAgentId, 'lock', { state: pc.locked, message: message });
 });
 
 document.getElementById('btn-update-all').addEventListener('click', () => {

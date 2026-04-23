@@ -32,7 +32,7 @@ loadConfig();
 
 const CLOUD_URL = 'https://cyber-control-production.up.railway.app';
 const RAW_AGENT_URL = 'https://raw.githubusercontent.com/samariofreddy-source/cyber-control/main/agent.js';
-const VERSION = '1.0.6'; 
+const VERSION = '1.0.7'; 
 const BROADCAST_PORT = 41234;
 // ---------------------
 
@@ -188,8 +188,11 @@ function connectToServer(url) {
         }
         else if (command === 'lock') {
             if (params.state) {
+                const customMsg = params.message || "EL PROFESOR HA BLOQUEADO ESTA COMPUTADORA";
                 const lockFile = lockHtmlPath.replace(/\\/g, '/');
-                exec(`start "" "msedge" --kiosk "file:///${lockFile}" --edge-kiosk-type=fullscreen`);
+                // Codificar el mensaje para la URL
+                const encodedMsg = encodeURIComponent(customMsg);
+                exec(`start "" "msedge" --kiosk "file:///${lockFile}?msg=${encodedMsg}" --edge-kiosk-type=fullscreen --no-first-run --no-default-browser-check`);
             } else {
                 exec('taskkill /F /IM msedge.exe');
             }
