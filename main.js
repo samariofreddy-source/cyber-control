@@ -85,13 +85,29 @@ remoteOverlay.addEventListener('click', (e) => {
     const y = (e.clientY - rect.top) / rect.height;
     sendCommand(currentAgentId, 'mouse-click', { x, y });
     
+    showClickRipple(x, y);
+});
+
+let lastMouseMove = 0;
+remoteOverlay.addEventListener('mousemove', (e) => {
+    const now = Date.now();
+    if (now - lastMouseMove < 100) return; // Throttle to 10 FPS
+    lastMouseMove = now;
+
+    const rect = remoteOverlay.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    sendCommand(currentAgentId, 'mouse-move', { x, y });
+});
+
+function showClickRipple(x, y) {
     const ripple = document.createElement('div');
     ripple.className = 'click-ripple';
     ripple.style.left = `${(x * 100)}%`;
     ripple.style.top = `${(y * 100)}%`;
     remoteOverlay.appendChild(ripple);
     setTimeout(() => ripple.remove(), 600);
-});
+}
 
 function initSocket() {
     try {

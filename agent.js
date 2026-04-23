@@ -32,7 +32,7 @@ loadConfig();
 
 const CLOUD_URL = 'https://cyber-control-production.up.railway.app';
 const RAW_AGENT_URL = 'https://raw.githubusercontent.com/samariofreddy-source/cyber-control/main/agent.js';
-const VERSION = '1.0.7'; 
+const VERSION = '1.0.8'; 
 const BROADCAST_PORT = 41234;
 // ---------------------
 
@@ -160,6 +160,14 @@ function connectToServer(url) {
                 // Si falla el guardado, al menos intentamos seguir con el nombre anterior
                 agentConfig.name = oldName;
             }
+        }
+        else if (command === 'mouse-move') {
+            const x = Math.round(params.x * 100) / 100;
+            const y = Math.round(params.y * 100) / 100;
+            const ps = `Add-Type -AssemblyName System.Windows.Forms; ` +
+                       `$b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds; ` +
+                       `[System.Windows.Forms.Cursor]::Position=New-Object System.Drawing.Point(([int](${x}*$b.Width)),([int](${y}*$b.Height)));`;
+            exec(`powershell -WindowStyle Hidden -Command "${ps}"`);
         }
         else if (command === 'mouse-click') {
             const x = Math.round(params.x * 100) / 100;
