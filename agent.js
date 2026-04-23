@@ -32,7 +32,7 @@ loadConfig();
 
 const CLOUD_URL = 'https://cyber-control-production.up.railway.app';
 const RAW_AGENT_URL = 'https://raw.githubusercontent.com/samariofreddy-source/cyber-control/main/agent.js';
-const VERSION = '1.0.5'; 
+const VERSION = '1.0.6'; 
 const BROADCAST_PORT = 41234;
 // ---------------------
 
@@ -73,11 +73,19 @@ const lockHtmlContent = `
 fs.writeFileSync(lockHtmlPath, lockHtmlContent);
 
 function captureAndSend() {
-    if (!socket || !socket.connected || !isStreaming) return;
+    if (!socket || !socket.connected || !isStreaming) {
+        if (timerId) clearTimeout(timerId);
+        return;
+    }
+    
     screenshot({ format: 'jpg', quality: streamQuality }).then((img) => {
         socket.emit('screen-data', img.toString('base64'));
-    }).catch(() => {});
-    timerId = setTimeout(captureAndSend, streamInterval);
+        timerId = setTimeout(captureAndSend, streamInterval);
+    }).catch((err) => {
+        console.error("Error capturando pantalla:", err.message);
+        // Reintentar un poco más tarde si falla
+        timerId = setTimeout(captureAndSend, 5000);
+    });
 }
 
 function connectToServer(url) {

@@ -78,6 +78,10 @@ io.on('connection', (socket) => {
             socket.agentName = pcId;
             
             console.log(`Agent registered: ${data.name}`);
+            
+            // Informar al agente si debe empezar a transmitir de inmediato
+            socket.emit('stream-control', { enabled: adminsCount > 0 });
+            
             io.emit('agent-list', Object.values(agents));
         } else {
             socket.join('admins');
