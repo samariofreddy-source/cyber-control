@@ -69,7 +69,7 @@ io.on('connection', (socket) => {
                 id: socket.id, // Current socket
                 name: data.name,
                 user: data.user,
-                version: data.version,
+                version: data.version || '1.0.0', // Aseguramos que se guarde
                 locked: agents[pcId] ? agents[pcId].locked : false,
                 connected: true,
                 cpu: 10,
