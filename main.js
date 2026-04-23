@@ -186,7 +186,10 @@ function renderPCs() {
                 <div class="pc-placeholder"><i data-lucide="monitor"></i></div>
             </div>
             <div class="pc-info">
-                <h4>${pc.name}</h4>
+                <div class="pc-title-row">
+                    <h4>${pc.name}</h4>
+                    <span class="pc-version-badge">${pc.version || 'v1.0.x'}</span>
+                </div>
                 <p class="student">${pc.user}</p>
             </div>
         `;
